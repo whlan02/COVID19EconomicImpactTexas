@@ -13,4 +13,3 @@ esda==2.3.2
 fiona==1.8.20
 contextily==1.6.2
 plotly==6.0.0
-pygdal==3.6.2.*
