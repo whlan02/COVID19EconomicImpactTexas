@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 from pathlib import Path
 import folium
 from streamlit_folium import folium_static
@@ -44,7 +42,7 @@ class App:
             try:
                 file_path = self.data_dir / f"spatial_analysis_{year}.geojson"
                 if file_path.exists():
-                    # 使用 pyogrio 引擎读取文件
+                    # Use pyogrio engine to read the file
                     gdf = gpd.read_file(str(file_path), 
                                     columns=["GEOID10", "COUNTY", "Economic_Index", 
                                             "Poverty_Rate", "GDP", "Unemployment_Rate", 
@@ -60,10 +58,7 @@ class App:
         """Load pre-calculated data for a specific year with optimized loading"""
         return _self.cached_data.get(year)
                 
-    # @st.cache_data(ttl=3600)
-    # def load_covid_comparison_data(_self):
-    #     """Load only the years needed for COVID comparison analysis"""
-    #     return _self.cached_data
+
     
     @st.cache_data(ttl=3600)  # Cache for 1 hour
     def load_moran_results(_self, year):
@@ -312,7 +307,7 @@ class App:
         
         # Tab 1: Annual Economic Index
         with tab1:
-            year_tab1, year_tab2, year_tab3 = st.tabs(["2019", "2020", "2023"])
+            year_tab1, year_tab2, year_tab3 = st.tabs(["Pre-COVID (2019)", "During COVID (2020)", "Post-COVID (2023)"])
             
             with year_tab1:
                 self.display_moran_results_for_year("2019")
@@ -524,7 +519,7 @@ class App:
                 st.warning("Insufficient data to analyze overall economic change")
 
     def is_data_loaded(self):
-        """检查数据是否已经加载"""
+        """Check if data has been loaded"""
         return bool(self.cached_data)
 
 def main():
@@ -536,7 +531,7 @@ def main():
         # Initialize app
         app = App()
         
-        # 初始化变量
+        # Initialize variables
         covid_data = None
         covid_metrics = None
         
@@ -561,12 +556,12 @@ def main():
         if covid_data is not None and covid_metrics is not None:
             app.show_covid_impact_dashboard(covid_data, covid_metrics)
         else:
-            st.error("数据加载失败，请检查数据文件是否存在且格式正确。")
+            st.error("Data loading failed, please check if the data files exist and are formatted correctly.")
     elif selected_nav == "Spatial Analysis (Moran's I)":
         if app.is_data_loaded():
             app.show_moran_results()
         else:
-            st.error("数据加载失败，无法显示空间分析结果。")
+            st.error("Data loading failed, unable to display spatial analysis results.")
     
     # Add information footer
     st.sidebar.markdown("---")
