@@ -10,6 +10,6 @@ streamlit-folium==0.15.0
 openpyxl==3.1.2
 libpysal==4.7.0
 esda==2.3.2
-fiona==1.8.22
+fiona==1.8.20
 contextily==1.6.2
 plotly==6.0.0
