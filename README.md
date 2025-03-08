@@ -33,7 +33,7 @@ To run the analysis, ensure you have the following Python packages installed:
 You can install the required packages using pip:
 
 ```bash
-pip install geopandas numpy matplotlib libpysal esda pandas json scipy
+pip install -r requirements.txt
 ```
 
 ## Usage
