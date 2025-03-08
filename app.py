@@ -439,11 +439,11 @@ class App:
                 with col2:
                     st.metric("Most Negative Impact", 
                              f"{impact_data['COVID_Impact_Percent'].min():.2f}%",
-                             f"{impact_data.loc[impact_data['COVID_Impact_Percent'].idxmin(), 'COUNTY']} County")
+                             f"{impact_data.loc[impact_data['COVID_Impact_Percent'].idxmin(), 'COUNTY']}")
                 with col3:
                     st.metric("Most Positive Impact", 
                              f"{impact_data['COVID_Impact_Percent'].max():.2f}%",
-                             f"{impact_data.loc[impact_data['COVID_Impact_Percent'].idxmax(), 'COUNTY']} County")
+                             f"{impact_data.loc[impact_data['COVID_Impact_Percent'].idxmax(), 'COUNTY']}")
                 
                 # Display map
                 self.show_covid_impact_map(impact_data, "COVID_Impact_Percent", 
