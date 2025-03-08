@@ -7,12 +7,8 @@ import folium
 from streamlit_folium import folium_static
 import geopandas as gpd
 import time
-import json
-import os
-
-# 设置环境变量以使用 pyogrio 而不是 fiona
-os.environ['USE_PYGEOS'] = '0'  # 禁用已弃用的 PyGEOS
-os.environ['PYOGRIO_BACKEND'] = 'GDAL'  # 确保使用 GDAL 后端
+import json  # Add this import
+from branca.element import Template, MacroElement
 
 # Set page configuration
 st.set_page_config(
@@ -44,26 +40,25 @@ class App:
             try:
                 file_path = self.data_dir / f"spatial_analysis_{year}.geojson"
                 if file_path.exists():
-                    # 使用 pyogrio 引擎读取文件
-                    gdf = gpd.read_file(str(file_path), 
+                    # Only load essential columns and use fiona driver for faster loading
+                    gdf = gpd.read_file(file_path, 
                                     columns=["GEOID10", "COUNTY", "Economic_Index", 
                                             "Poverty_Rate", "GDP", "Unemployment_Rate", 
                                             "geometry", "local_moran_cluster"],
-                                    engine='pyogrio')
+                                    driver='GeoJSON')
                     self.cached_data[year] = gdf
             except Exception as e:
                 print(f"Error caching data for {year}: {e}")
-                st.error(f"Error loading data for {year}: {e}")
     
     @st.cache_data(ttl=3600)
     def load_data(_self, year):
         """Load pre-calculated data for a specific year with optimized loading"""
         return _self.cached_data.get(year)
                 
-    # @st.cache_data(ttl=3600)
-    # def load_covid_comparison_data(_self):
-    #     """Load only the years needed for COVID comparison analysis"""
-    #     return _self.cached_data
+    @st.cache_data(ttl=3600)
+    def load_covid_comparison_data(_self):
+        """Load only the years needed for COVID comparison analysis"""
+        return _self.cached_data
     
     @st.cache_data(ttl=3600)  # Cache for 1 hour
     def load_moran_results(_self, year):
@@ -222,43 +217,64 @@ class App:
             "Not Significant": "#CCCCCC"  # Gray
         }
         
-        # Create a function to style features based on cluster type
-        def style_function(feature):
-            cluster_type = feature['properties']['local_moran_cluster']
-            return {
-                'fillColor': cluster_colors.get(cluster_type, "#CCCCCC"),
-                'color': '#000000',
-                'weight': 1,
-                'fillOpacity': 0.7
-            }
+        # 为每种集群类型创建单独的图层，这样可以在图例中显示
+        for cluster_type, color in cluster_colors.items():
+            # 筛选出特定类型的集群
+            cluster_data = gdf_wgs84[gdf_wgs84['local_moran_cluster'] == cluster_type]
+            
+            if not cluster_data.empty:
+                # 添加GeoJson图层
+                folium.GeoJson(
+                    cluster_data,
+                    name=cluster_type,
+                    tooltip=folium.features.GeoJsonTooltip(
+                        fields=["COUNTY", "Economic_Index", "local_moran_cluster"],
+                        aliases=["County: ", "Economic Index: ", "Cluster Type: "],
+                        style=("background-color: white; color: #333333; font-family: arial; font-size: 12px; padding: 10px;")
+                    ),
+                    style_function=lambda x, color=color: {
+                        'fillColor': color,
+                        'color': '#000000',
+                        'weight': 1,
+                        'fillOpacity': 0.7
+                    }
+                ).add_to(m)
         
-        # Add GeoJson layer with cluster styling
-        tooltip = folium.features.GeoJsonTooltip(
-            fields=["COUNTY", "Economic_Index", "local_moran_cluster"],
-            aliases=["County: ", "Economic Index: ", "Cluster Type: "],
-            style=("background-color: white; color: #333333; font-family: arial; font-size: 12px; padding: 10px;")
-        )
+        # 添加图层控制器，它会自动创建图例
+        folium.LayerControl(position='bottomright').add_to(m)
         
-        folium.GeoJson(
-            gdf_wgs84,
-            name="Local Moran Clusters",
-            tooltip=tooltip,
-            style_function=style_function
-        ).add_to(m)
-        
-        # Add a legend
+        # 添加自定义图例
         legend_html = '''
-        <div style="position: fixed; bottom: 50px; left: 50px; z-index: 1000; background-color: white; 
-        padding: 10px; border: 2px solid grey; border-radius: 5px;">
-        <p><b>Cluster Types</b></p>
-        <p><i style="background: #FF0000; width: 15px; height: 15px; display: inline-block;"></i> High-High</p>
-        <p><i style="background: #0000FF; width: 15px; height: 15px; display: inline-block;"></i> Low-Low</p>
-        <p><i style="background: #FFA500; width: 15px; height: 15px; display: inline-block;"></i> High-Low</p>
-        <p><i style="background: #00FFFF; width: 15px; height: 15px; display: inline-block;"></i> Low-High</p>
-        <p><i style="background: #CCCCCC; width: 15px; height: 15px; display: inline-block;"></i> Not Significant</p>
+        <div style="position: fixed; bottom: 50px; left: 50px; z-index: 9999; 
+                    background-color: white; padding: 10px; border: 2px solid grey; 
+                    border-radius: 5px; font-size: 14px;">
+            <div style="font-weight: bold; margin-bottom: 5px;">集群类型</div>
+            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                <span style="background-color: #FF0000; width: 20px; height: 20px; display: inline-block; margin-right: 5px;"></span>
+                <span>高-高集群</span>
+            </div>
+            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                <span style="background-color: #0000FF; width: 20px; height: 20px; display: inline-block; margin-right: 5px;"></span>
+                <span>低-低集群</span>
+            </div>
+            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                <span style="background-color: #FFA500; width: 20px; height: 20px; display: inline-block; margin-right: 5px;"></span>
+                <span>高-低集群</span>
+            </div>
+            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                <span style="background-color: #00FFFF; width: 20px; height: 20px; display: inline-block; margin-right: 5px;"></span>
+                <span>低-高集群</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <span style="background-color: #CCCCCC; width: 20px; height: 20px; display: inline-block; margin-right: 5px;"></span>
+                <span>不显著</span>
+            </div>
         </div>
         '''
-        m.get_root().html.add_child(folium.Element(legend_html))
+        
+        # 使用iframe添加图例，这种方法更可靠
+        legend = folium.Element(legend_html)
+        m.get_root().html.add_child(legend)
         
         # Display the map
         folium_static(m)
@@ -312,8 +328,7 @@ class App:
         
         # Tab 1: Annual Economic Index
         with tab1:
-            year_tab1, year_tab2, year_tab3 = st.tabs(["2019", "2020", "2023"])
-            
+            year_tab1, year_tab2, year_tab3 = st.tabs(["Pre-pandemic (2019)", "During Pandemic (2020)", "Post-pandemic (2023)"])            
             with year_tab1:
                 self.display_moran_results_for_year("2019")
             with year_tab2:
@@ -385,7 +400,7 @@ class App:
 
         # Load spatial analysis results
         try:
-            gdf = gpd.read_file(self.data_dir / f"spatial_analysis_{metric_type}.geojson", engine='pyogrio')
+            gdf = gpd.read_file(self.data_dir / f"spatial_analysis_{metric_type}.geojson")
         except Exception as e:
             st.warning(f"No spatial analysis results available for {metric_type}")
             return
@@ -445,11 +460,11 @@ class App:
                 with col2:
                     st.metric("Most Negative Impact", 
                              f"{impact_data['COVID_Impact_Percent'].min():.2f}%",
-                             f"{impact_data.loc[impact_data['COVID_Impact_Percent'].idxmin(), 'COUNTY']}")
+                             f"{impact_data.loc[impact_data['COVID_Impact_Percent'].idxmin(), 'COUNTY']} ")
                 with col3:
                     st.metric("Most Positive Impact", 
                              f"{impact_data['COVID_Impact_Percent'].max():.2f}%",
-                             f"{impact_data.loc[impact_data['COVID_Impact_Percent'].idxmax(), 'COUNTY']}")
+                             f"{impact_data.loc[impact_data['COVID_Impact_Percent'].idxmax(), 'COUNTY']} ")
                 
                 # Display map
                 self.show_covid_impact_map(impact_data, "COVID_Impact_Percent", 
@@ -536,18 +551,20 @@ def main():
         # Initialize app
         app = App()
         
-        # 初始化变量
-        covid_data = None
-        covid_metrics = None
-        
-        # Load data
+        # Load only the data needed for COVID comparison if not already loaded
         if not app.is_data_loaded():
-            st.error("Failed to load data. Please check your data files and permissions.")
+            covid_data = app.load_covid_comparison_data()
+            # Calculate COVID impact metrics
+            if covid_data:
+                covid_metrics = app.create_covid_impact_metrics(covid_data)
+                load_time = time.time() - start_time
+                st.success(f"Data loaded successfully in {load_time:.2f} seconds")
+            else:
+                st.error("Failed to load necessary data")
+                return
         else:
             covid_data = app.cached_data
-            covid_metrics = app.create_covid_impact_metrics(covid_data)
-            load_time = time.time() - start_time
-            st.success(f"Data loaded successfully in {load_time:.2f} seconds")
+            covid_metrics = app.create_covid_impact_metrics(covid_data)  # 直接使用缓存的数据
 
     # Create sidebar for navigation
     st.sidebar.header("Navigation")
@@ -558,15 +575,9 @@ def main():
     
     # Display selected content based on navigation
     if selected_nav == "COVID-19 Impact Analysis":
-        if covid_data is not None and covid_metrics is not None:
-            app.show_covid_impact_dashboard(covid_data, covid_metrics)
-        else:
-            st.error("数据加载失败，请检查数据文件是否存在且格式正确。")
+        app.show_covid_impact_dashboard(covid_data, covid_metrics)
     elif selected_nav == "Spatial Analysis (Moran's I)":
-        if app.is_data_loaded():
-            app.show_moran_results()
-        else:
-            st.error("数据加载失败，无法显示空间分析结果。")
+        app.show_moran_results()  # Call the updated method without year selection
     
     # Add information footer
     st.sidebar.markdown("---")
