@@ -39,15 +39,15 @@ class App:
             try:
                 file_path = self.data_dir / f"spatial_analysis_{year}.geojson"
                 if file_path.exists():
-                    # Only load essential columns and use fiona driver for faster loading
-                    gdf = gpd.read_file(file_path, 
+                    # 使用 gpd.read_file 的标准方式，不指定 driver
+                    gdf = gpd.read_file(str(file_path), 
                                     columns=["GEOID10", "COUNTY", "Economic_Index", 
                                             "Poverty_Rate", "GDP", "Unemployment_Rate", 
-                                            "geometry", "local_moran_cluster"],
-                                    driver='GeoJSON')
+                                            "geometry", "local_moran_cluster"])
                     self.cached_data[year] = gdf
             except Exception as e:
                 print(f"Error caching data for {year}: {e}")
+                st.error(f"Error loading data for {year}: {e}")
     
     @st.cache_data(ttl=3600)
     def load_data(_self, year):
@@ -523,7 +523,6 @@ class App:
 
 def main():
     """Main function"""
-    covid_data = None  # Initialize covid_data to None
     # Display loading message
     with st.spinner("Loading data... This may take a few seconds."):
         start_time = time.time()
@@ -531,21 +530,18 @@ def main():
         # Initialize app
         app = App()
         
-        # Load only the data needed for COVID comparison if not already loaded
+        # 初始化变量
+        covid_data = None
+        covid_metrics = None
+        
+        # Load data
         if not app.is_data_loaded():
-            # @st.cache_data(ttl=3600)
-            # def load_covid_comparison_data(_self):
-            #     """Load only the years needed for COVID comparison analysis"""
-            #     return _self.cached_data
-            # covid_data = app.load_covid_comparison_data()
-            # # Calculate COVID impact metrics
-            # if covid_data:
-            #     covid_metrics = app.create_covid_impact_metrics(covid_data)
-            load_time = time.time() - start_time
-            st.success(f"Data loaded successfully in {load_time:.2f} seconds")
+            st.error("Failed to load data. Please check your data files and permissions.")
         else:
             covid_data = app.cached_data
-            covid_metrics = app.create_covid_impact_metrics(covid_data)  # 直接使用缓存的数据
+            covid_metrics = app.create_covid_impact_metrics(covid_data)
+            load_time = time.time() - start_time
+            st.success(f"Data loaded successfully in {load_time:.2f} seconds")
 
     # Create sidebar for navigation
     st.sidebar.header("Navigation")
@@ -556,9 +552,15 @@ def main():
     
     # Display selected content based on navigation
     if selected_nav == "COVID-19 Impact Analysis":
-        app.show_covid_impact_dashboard(covid_data, covid_metrics)
+        if covid_data is not None and covid_metrics is not None:
+            app.show_covid_impact_dashboard(covid_data, covid_metrics)
+        else:
+            st.error("数据加载失败，请检查数据文件是否存在且格式正确。")
     elif selected_nav == "Spatial Analysis (Moran's I)":
-        app.show_moran_results()  # Call the updated method without year selection
+        if app.is_data_loaded():
+            app.show_moran_results()
+        else:
+            st.error("数据加载失败，无法显示空间分析结果。")
     
     # Add information footer
     st.sidebar.markdown("---")
