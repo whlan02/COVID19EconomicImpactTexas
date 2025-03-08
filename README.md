@@ -1,29 +1,71 @@
-# COVID-19 Economic Impact on Texas Counties
+# Spatial Analysis of Economic Impact
 
-This Streamlit application analyzes the economic conditions of Texas counties, including poverty rate, GDP, and unemployment rate data, calculates the economic index, and analyzes spatial correlations between counties.
+## Overview
 
-## Features
+This project analyzes the economic impact of COVID-19 on Texas counties by examining various economic indicators, including GDP, unemployment rates, and poverty rates. The analysis utilizes spatial statistics to understand the spatial autocorrelation of these indicators over time.
 
-- Load and integrate economic data for Texas counties (2019-2023)
-- Calculate a comprehensive economic status index
-- Analyze spatial correlations between counties
-- Visualize the geographic distribution of the economic index
-- Generate correlation heatmaps and statistical charts
+## Data Sources
 
-## Data Requirements
+The data used in this analysis comes from the following sources:
 
-The application requires the following data files:
+- **GDP by County, Metro, and Other Areas**: 
+  - [Bureau of Economic Analysis (BEA)](https://www.bea.gov/data/gdp/gdp-county-metro-and-other-areas)
+  
+- **Unemployment Report**: 
+  - [U.S. Department of Agriculture Economic Research Service](https://data.ers.usda.gov/reports.aspx?ID=4038)
+  
+- **Poverty Report**: 
+  - [U.S. Census Bureau](https://www.census.gov/data-tools/demo/saipe/#/?s_state=48&s_geography=county&s_measures=aa&x_tableYears=2023&s_county=&s_district=&map_yearSelector=2023)
 
-1. Texas county boundary map data (Shapefile format)
-2. Poverty rate data (Excel format)
-3. GDP data (Excel format)
-4. Unemployment rate data (Excel format)
+## Requirements
 
-All Excel files should contain the following columns:
-- County: County name
-- Year: Year (2019-2023)
-- Corresponding metric values (Poverty_Rate, GDP, Unemployment_Rate)
+To run the analysis, ensure you have the following Python packages installed:
 
-## Installation and Running
+- `geopandas`
+- `numpy`
+- `matplotlib`
+- `libpysal`
+- `esda`
+- `pandas`
+- `json`
+- `scipy`
 
-1. Install dependencies:
+You can install the required packages using pip:
+
+```bash
+pip install geopandas numpy matplotlib libpysal esda pandas json scipy
+```
+
+## Usage
+
+1. **Data Preparation**: Ensure that the economic data files (poverty, GDP, unemployment) are placed in the `data` directory. The shapefile for Texas counties should also be in the same directory.
+
+2. **Run the Analysis**: Execute the `spatial_analysis.py` script to perform the spatial analysis. The script will:
+   - Load the necessary data.
+   - Calculate the economic index for each county.
+   - Perform spatial autocorrelation analysis using Moran's I.
+   - Generate visualizations, including choropleth maps and scatter plots.
+
+3. **Output**: The results will be saved in the `processed_data` directory, including GeoJSON files for spatial analysis and visualizations.
+
+## Functions
+
+### `SpatialAnalyzer`
+
+- **`__init__(self, data_dir="processed_data", output_dir="processed_data")`**: Initializes the spatial analyzer with specified data and output directories.
+  
+- **`create_weights_matrix(self, gdf)`**: Creates a spatial weights matrix from the GeoDataFrame.
+
+- **`calculate_moran_i(self, gdf, weights, variable="Economic_Index")`**: Calculates global Moran's I for the specified variable.
+
+- **`calculate_local_moran(self, gdf, weights, variable="Economic_Index")`**: Calculates local Moran's I and adds results to the GeoDataFrame.
+
+- **`plot_spatial_analysis(self, gdf, moran_i, year, variable="Economic_Index")`**: Plots spatial analysis figures, including choropleth maps and Moran scatter plots.
+
+- **`analyze_year(self, year)`**: Analyzes data for a specific year, calculating Moran's I and generating visualizations.
+
+- **`calculate_recovery_metrics(self, pre_covid_gdf, covid_gdf, post_covid_gdf)`**: Calculates recovery metrics between pre-COVID, during COVID, and post-COVID data.
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for more details.
