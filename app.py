@@ -523,6 +523,7 @@ class App:
 
 def main():
     """Main function"""
+    covid_data = None  # Initialize covid_data to None
     # Display loading message
     with st.spinner("Loading data... This may take a few seconds."):
         start_time = time.time()
