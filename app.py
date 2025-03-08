@@ -7,7 +7,12 @@ import folium
 from streamlit_folium import folium_static
 import geopandas as gpd
 import time
-import json  # Add this import
+import json
+import os
+
+# 设置环境变量以使用 pyogrio 而不是 fiona
+os.environ['USE_PYGEOS'] = '0'  # 禁用已弃用的 PyGEOS
+os.environ['PYOGRIO_BACKEND'] = 'GDAL'  # 确保使用 GDAL 后端
 
 # Set page configuration
 st.set_page_config(
@@ -39,11 +44,12 @@ class App:
             try:
                 file_path = self.data_dir / f"spatial_analysis_{year}.geojson"
                 if file_path.exists():
-                    # 使用 gpd.read_file 的标准方式，不指定 driver
+                    # 使用 pyogrio 引擎读取文件
                     gdf = gpd.read_file(str(file_path), 
                                     columns=["GEOID10", "COUNTY", "Economic_Index", 
                                             "Poverty_Rate", "GDP", "Unemployment_Rate", 
-                                            "geometry", "local_moran_cluster"])
+                                            "geometry", "local_moran_cluster"],
+                                    engine='pyogrio')
                     self.cached_data[year] = gdf
             except Exception as e:
                 print(f"Error caching data for {year}: {e}")
@@ -379,7 +385,7 @@ class App:
 
         # Load spatial analysis results
         try:
-            gdf = gpd.read_file(self.data_dir / f"spatial_analysis_{metric_type}.geojson")
+            gdf = gpd.read_file(self.data_dir / f"spatial_analysis_{metric_type}.geojson", engine='pyogrio')
         except Exception as e:
             st.warning(f"No spatial analysis results available for {metric_type}")
             return

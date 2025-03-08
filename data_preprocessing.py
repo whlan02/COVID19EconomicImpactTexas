@@ -2,6 +2,11 @@ import pandas as pd
 import geopandas as gpd
 from pathlib import Path
 from sklearn.preprocessing import RobustScaler
+import os
+
+# 设置环境变量以使用 pyogrio 而不是 fiona
+os.environ['USE_PYGEOS'] = '0'  # 禁用已弃用的 PyGEOS
+os.environ['PYOGRIO_BACKEND'] = 'GDAL'  # 确保使用 GDAL 后端
 
 class DataProcessor:
     def __init__(self, data_dir="data", output_dir="processed_data"):
@@ -13,7 +18,8 @@ class DataProcessor:
     def load_shapefile(self):
         """Load Texas county boundary shapefile data"""
         try:
-            gdf = gpd.read_file(self.shapefile_path)
+            # 使用 engine='pyogrio' 替代默认的 fiona
+            gdf = gpd.read_file(self.shapefile_path, engine='pyogrio')
             print(f"Successfully loaded Shapefile, total {len(gdf)} counties")
             return gdf
         except Exception as e:

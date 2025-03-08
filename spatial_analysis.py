@@ -7,6 +7,11 @@ from libpysal.weights import Queen
 from esda.moran import Moran, Moran_Local
 import json
 import pandas as pd
+import os
+
+# 设置环境变量以使用 pyogrio 而不是 fiona
+os.environ['USE_PYGEOS'] = '0'  # 禁用已弃用的 PyGEOS
+os.environ['PYOGRIO_BACKEND'] = 'GDAL'  # 确保使用 GDAL 后端
 
 class SpatialAnalyzer:
     def __init__(self, data_dir="processed_data", output_dir="processed_data"):
@@ -166,7 +171,7 @@ class SpatialAnalyzer:
         # Load merged data
         try:
             gdf_path = self.data_dir / f"merged_data_{year}.geojson"
-            gdf = gpd.read_file(gdf_path)
+            gdf = gpd.read_file(gdf_path, engine='pyogrio')
             print(f"Loaded merged data for {year}")
         except Exception as e:
             print(f"Failed to load merged data for {year}: {e}")
@@ -195,7 +200,7 @@ class SpatialAnalyzer:
         gdf = self.calculate_local_moran(gdf, weights)
         
         # Save the updated GeoDataFrame with local Moran results
-        gdf.to_file(self.output_dir / f"spatial_analysis_{year}.geojson", driver="GeoJSON")
+        gdf.to_file(self.output_dir / f"spatial_analysis_{year}.geojson", driver="GeoJSON", engine='pyogrio')
         print(f"Saved spatial analysis results for {year}")
         
         # Plot analysis figures
@@ -269,7 +274,7 @@ class SpatialAnalyzer:
         gdf = self.calculate_local_moran(gdf, weights, variable=metric_type)
         
         # Save the updated GeoDataFrame with local Moran results
-        gdf.to_file(self.output_dir / f"spatial_analysis_{metric_type}.geojson", driver="GeoJSON")
+        gdf.to_file(self.output_dir / f"spatial_analysis_{metric_type}.geojson", driver="GeoJSON", engine='pyogrio')
         
         # Plot analysis figures
         self.plot_spatial_analysis(gdf, moran_i, metric_type, variable=metric_type)
@@ -288,7 +293,7 @@ class SpatialAnalyzer:
             try:
                 gdf_path = self.data_dir / f"merged_data_{year}.geojson"
                 if gdf_path.exists():
-                    gdfs[year] = gpd.read_file(gdf_path)
+                    gdfs[year] = gpd.read_file(gdf_path, engine='pyogrio')
                     result = self.analyze_year(year)
                     if result is not None:
                         results[year] = result
@@ -329,7 +334,7 @@ class SpatialAnalyzer:
                 if not gdf_path.exists():
                     continue
                     
-                gdf = gpd.read_file(gdf_path)
+                gdf = gpd.read_file(gdf_path, engine='pyogrio')
                 
                 # Extract relevant data
                 county_data = {}
