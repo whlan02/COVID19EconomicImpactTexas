@@ -54,10 +54,10 @@ class App:
         """Load pre-calculated data for a specific year with optimized loading"""
         return _self.cached_data.get(year)
                 
-    @st.cache_data(ttl=3600)
-    def load_covid_comparison_data(_self):
-        """Load only the years needed for COVID comparison analysis"""
-        return _self.cached_data
+    # @st.cache_data(ttl=3600)
+    # def load_covid_comparison_data(_self):
+    #     """Load only the years needed for COVID comparison analysis"""
+    #     return _self.cached_data
     
     @st.cache_data(ttl=3600)  # Cache for 1 hour
     def load_moran_results(_self, year):
@@ -532,15 +532,16 @@ def main():
         
         # Load only the data needed for COVID comparison if not already loaded
         if not app.is_data_loaded():
-            covid_data = app.load_covid_comparison_data()
-            # Calculate COVID impact metrics
-            if covid_data:
-                covid_metrics = app.create_covid_impact_metrics(covid_data)
-                load_time = time.time() - start_time
-                st.success(f"Data loaded successfully in {load_time:.2f} seconds")
-            else:
-                st.error("Failed to load necessary data")
-                return
+            # @st.cache_data(ttl=3600)
+            # def load_covid_comparison_data(_self):
+            #     """Load only the years needed for COVID comparison analysis"""
+            #     return _self.cached_data
+            # covid_data = app.load_covid_comparison_data()
+            # # Calculate COVID impact metrics
+            # if covid_data:
+            #     covid_metrics = app.create_covid_impact_metrics(covid_data)
+            load_time = time.time() - start_time
+            st.success(f"Data loaded successfully in {load_time:.2f} seconds")
         else:
             covid_data = app.cached_data
             covid_metrics = app.create_covid_impact_metrics(covid_data)  # 直接使用缓存的数据
