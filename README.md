@@ -4,6 +4,8 @@
 
 This project analyzes the economic impact of COVID-19 on Texas counties by examining various economic indicators, including GDP, unemployment rates, and poverty rates. The analysis utilizes spatial statistics to understand the spatial autocorrelation of these indicators over time.
 
+[Demo](https://covid19economicimpacttexas-kesftbvw6gbdwmvepu6pmp.streamlit.app/)
+
 ## Data Sources
 
 The data used in this analysis comes from the following sources:
